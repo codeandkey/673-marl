@@ -53,9 +53,6 @@ if __name__ == '__main__':
     print('Algorithm: {}'.format(args.algorithm))
     print('Environment: {}'.format(args.env))
 
-    # initialize experiment
-    experiments.prepare_output_dir(args, args.outdir, argv=sys.argv)
-
     # initialize training and eval environments
     if args.env == 'simple_adversary':
         train_env = simple_adversary_v2.env()
@@ -72,24 +69,21 @@ if __name__ == '__main__':
     # initialize an algorithm
     # each environment makes use of two different agents,
     # so we initialize one for each.
-    if args.algorithm == 'dqn':
-        from dqn import dqn_agent
+    make_agent = None
 
-        agents = {
-            agent_name: dqn_agent(train_env, agent_name)
-            for agent_name in train_env.agents
-        }
-    elif args.algorithm == 'dqn':
-        from ddqn import ddqn_agent
-        agent = ddqn_agent(env)
-    elif args.algorithm == 'a2c':
-        from a2c import a2c_agent
-        agent = a3c_agent(env)
-    elif args.algorithm == 'ppo':
-        from ppo import ppo_agent
-        agent = ppo_agent(env)
+    if args.algorithm == 'dqn':
+        import dqn.dqn_agent as make_agent
+    elif args.algorithm == 'a3c':
+        import a3c.a3c_agent as make_agent
+    # elif args.algorithm == 'ppo':
+    #     import ppo.ppo_agent as make_agent
     else:
         raise NotImplementedError(args.algorithm)
+
+    agents = {
+        agent_name: make_agent(train_env, agent_name)
+        for agent_name in train_env.agents
+    }
 
     print('Starting MARL experiments')
 
