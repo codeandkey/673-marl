@@ -32,9 +32,9 @@ parser.add_argument('--episodes',
                     default=1000,
                     help='The number of training episodes')
 
-parser.add_argument('--outdir',
-                    default='results',
-                    help='Directory path to save output files.')
+parser.add_argument('--outpath',
+                    default='results.json',
+                    help='Output file path.')
 
 parser.add_argument('--steps',
                     type=int,
@@ -72,11 +72,11 @@ if __name__ == '__main__':
     make_agent = None
 
     if args.algorithm == 'dqn':
-        import dqn.dqn_agent as make_agent
-    elif args.algorithm == 'a3c':
-        import a3c.a3c_agent as make_agent
-    # elif args.algorithm == 'ppo':
-    #     import ppo.ppo_agent as make_agent
+        from dqn import dqn_agent as make_agent
+    #elif args.algorithm == 'a3c':
+    #    from a3c import a3c_agent as make_agent
+    #elif args.algorithm == 'ppo':
+    #   from ppo import ppo_agent as make_agent
     else:
         raise NotImplementedError(args.algorithm)
 
@@ -101,7 +101,7 @@ if __name__ == '__main__':
         args.steps,
         100,
         args.eval_interval,
-        args.outdir
+        args.outpath
     )
 
     print('Finished MARL experiments')
