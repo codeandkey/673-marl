@@ -41,7 +41,7 @@ parser.add_argument('--source', help='Data series to plot', default='results.jso
 args = parser.parse_args()
 
 if not args.x_label:
-    args.x_label = args.series
+    args.x_label = 'episodes'
 
 with open(args.source, 'r') as f:
     fdata = eval(f.read())
