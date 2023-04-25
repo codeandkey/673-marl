@@ -7,7 +7,7 @@ def train_agents_with_evaluation(
   steps,
   train_steps,
   eval_interval,
-  outdir,
+  outpath,
 ):
     """Trains agents in a multi-agent environment, periodically evaluating the
        performance of each agent over a single episode."""
@@ -18,7 +18,22 @@ def train_agents_with_evaluation(
     total_steps = 0 # the total number of training steps taken
     iteration = 0   # the number of training iterations taken
 
+    def write_results():
+        test_reward_history = { a: [] for a in agents.keys() }
+
+        for t in test_rewards:
+            for k in t.keys():
+                test_reward_history[k].append(t[k])
+
+        test_reward_history['episodes'] = [
+            i * train_steps for i in range(len(test_rewards))
+        ]
+
+        with open(outpath, 'w') as f:
+            f.write(str(test_reward_history))
+
     print('Will train for {} steps'.format(steps))
+    print('Writing results to {}'.format(outpath))
 
     while total_steps < steps:
         iteration += 1
@@ -29,10 +44,13 @@ def train_agents_with_evaluation(
         if iteration % eval_interval == 0:
             # Evaluate the performance of each agent
             test_rewards.append(evaluate_agents(agents, test_env))
+
             print('Time {}, test reward {}'.format(
                 strftime('%Y-%m-%d %H:%M:%S', gmtime()),
                 test_rewards[-1]
             ))
+
+            write_results()
 
         # Train the agents
         train_rewards.append(train_agents(agents, train_env, train_steps))
