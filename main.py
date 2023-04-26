@@ -73,6 +73,8 @@ if __name__ == '__main__':
 
     if args.algorithm == 'dqn':
         from dqn import dqn_agent as make_agent
+    if args.algorithm == 'dqn':
+        from PPO import ppo_agent as make_agent
     #elif args.algorithm == 'a3c':
     #    from a3c import a3c_agent as make_agent
     #elif args.algorithm == 'ppo':
