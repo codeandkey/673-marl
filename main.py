@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--algorithm',
                     type=str,
                     default='dqn',
-                    choices=['dqn', 'ddqn', 'a2c', 'ppo'],
+                    choices=['dqn', 'ddqn', 'a2c', 'ppo', 'rainbow'],
                     help='The algorithm to use')
 
 parser.add_argument('--env',
@@ -72,7 +72,18 @@ if __name__ == '__main__':
     make_agent = None
 
     if args.algorithm == 'dqn':
-        from dqn import dqn_agent as make_agent
+        from dqn import dqn_agent
+        agents = {
+            agent_name: dqn_agent(train_env, agent_name)
+            for agent_name in train_env.agents
+            }
+
+    elif args.algorithm == 'rainbow':
+        from rainbow import rainbow_agent
+        agents = {
+            agent_name: rainbow_agent(train_env, agent_name, args.steps)
+            for agent_name in train_env.agents
+            }
     #elif args.algorithm == 'a3c':
     #    from a3c import a3c_agent as make_agent
     #elif args.algorithm == 'ppo':
@@ -80,10 +91,6 @@ if __name__ == '__main__':
     else:
         raise NotImplementedError(args.algorithm)
 
-    agents = {
-        agent_name: make_agent(train_env, agent_name)
-        for agent_name in train_env.agents
-    }
 
     print('Starting MARL experiments')
 
