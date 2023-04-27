@@ -74,7 +74,7 @@ if __name__ == '__main__':
     if args.algorithm == 'dqn':
         from dqn import dqn_agent as make_agent
     if args.algorithm == 'dqn':
-        from PPO import ppo_agent as make_agent
+        from PPO import PPO_agent as make_agent
     #elif args.algorithm == 'a3c':
     #    from a3c import a3c_agent as make_agent
     #elif args.algorithm == 'ppo':
@@ -83,7 +83,7 @@ if __name__ == '__main__':
         raise NotImplementedError(args.algorithm)
 
     agents = {
-        agent_name: make_agent(train_env, agent_name)
+        agent_name: make_agent(train_env, agent_name,args.steps)
         for agent_name in train_env.agents
     }
 
@@ -103,7 +103,8 @@ if __name__ == '__main__':
         args.steps,
         100,
         args.eval_interval,
-        args.outpath
+        args.outpath,
+
     )
 
     print('Finished MARL experiments')

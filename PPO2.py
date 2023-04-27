@@ -3,12 +3,23 @@ import numpy as np
 from torch import optim
 import torch.nn as nn
 import torch.nn.functional as F
-import torch
-from torch import nn
+
 from pfrl import nn as pnn
 from pfrl import agents, q_functions, replay_buffers, explorers, action_value
-from pfrl.policies import SoftmaxCategoricalHead
-import pfrl
+
+
+class QNetwork(nn.Module):
+    def __init__(self, obs_size, n_actions):
+        super().__init__()
+        self.fc1 = nn.Linear(obs_size, 50)
+        self.fc2 = nn.Linear(50, 50)
+        self.fc3 = nn.Linear(50, n_actions)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return action_value.DiscreteActionValue(x)
 
 
 def PPO_agent(env, agent, steps):
@@ -16,39 +27,23 @@ def PPO_agent(env, agent, steps):
     obs_size = env.observation_space(agent).shape[0]
     n_actions = env.action_space(agent).n
 
-    model = nn.Sequential(
-        nn.Linear(obs_size, 50),
-        nn.ReLU(),
-        nn.Linear(50, 50),
-        nn.ReLU(),
-        nn.Linear(50, 50),
-        nn.ReLU(),
-        nn.Linear(50, 50),
-        nn.ReLU(),
-        pfrl.nn.Branched(
-            nn.Sequential(
-                nn.Linear(50, n_actions),
-                SoftmaxCategoricalHead(),
-            ),
-            nn.Linear(50, 1),
-        )
-        )
- 
+    # Hyperparameter; the continuous range of possible Q-values is discretized into a fixed number of "atoms"
+    # n_atoms = 51 
+    # Hyperparameter; Lower and upper bounds of the support for the Q-value distribution. They have a direct impact on the accuracy of the learned distribution.
+    # v_max = 10 
+    # v_min = -10
+    # q_func = q_functions.DistributionalDuelingDQN(n_actions, n_atoms, v_min, v_max)
 
+    q_func = QNetwork(obs_size, n_actions)
 
-    # vf = torch.nn.Sequential(
-    #     nn.Linear(obs_size, 64),
-    #     nn.Tanh(),
-    #     nn.Linear(64, 64),
-    #     nn.Tanh(),
-    #     nn.Linear(64, 1),
-    # )
-    # model = pfrl.nn.Branched( model, vf)
     # Noisy nets; Sigma is the scaling factor of the initial weights of noise-scaling parameters
+    pnn.to_factorized_noisy(q_func, sigma_scale=0.5)
 
+    # Turn off explorer
+    explorer = explorers.Greedy()
 
     # Optimizer; Use the same hyper parameters as https://arxiv.org/abs/1710.02298
-    opt = torch.optim.Adam(model.parameters(), lr=3e-4, eps=1e-5)
+    opt = optim.Adam(q_func.parameters(), eps=1e-2)
 
     # Prioritized Replay
     # Anneal beta from beta0 to 1 throughout training
@@ -64,24 +59,10 @@ def PPO_agent(env, agent, steps):
     def phi(x):
         return np.asarray(x, dtype=np.float32) / 255
 
-    Agent = agents.PPO
-    obs_normalizer = pfrl.nn.EmpiricalNormalization(
-        obs_size, clip_threshold=5
-    )
+    Agent = agents.DoubleDQN
+
     # target_update_interval: Determines how often the target Q-network is updated with the weights of the online Q-network
     # update_interval: This parameter determines how often the online Q-network is updated with the experience collected in the replay buffer
-    #agent = Agent(q_func, opt, rbuf, gpu=-1, gamma=0.99, explorer=explorer, target_update_interval=100, update_interval=1, phi=phi)
-    agent = Agent(
-        model,
-        opt,
-        obs_normalizer=obs_normalizer,
-        gpu=-1,
-        update_interval=100,
-        clip_eps_vf=None,
-        entropy_coef=0,
-        standardize_advantages=True,
-        gamma=0.995,
-        lambd=0.97,
-    )
+    agent = Agent(q_func, opt, rbuf, gpu=-1, gamma=0.99, explorer=explorer, target_update_interval=100, update_interval=1, phi=phi)
 
     return agent
