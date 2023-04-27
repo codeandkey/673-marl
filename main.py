@@ -2,7 +2,7 @@ import argparse
 import sys
 
 # PettingZoo imports
-from pettingzoo.mpe import simple_adversary_v2, simple_push_v2
+from pettingzoo.mpe import simple_adversary_v2, simple_push_v2, simple_spread_v2
 
 # PFRL imports
 from pfrl import experiments, explorers
@@ -23,8 +23,8 @@ parser.add_argument('--algorithm',
 
 parser.add_argument('--env',
                     type=str,
-                    default='simple_adversary',
-                    choices=['simple_adversary', 'simple_push'],
+                    default='simple_spread',
+                    choices=['simple_adversary', 'simple_push', 'simple_spread'],
                     help='The environment to use')
 
 parser.add_argument('--episodes',
@@ -60,6 +60,9 @@ if __name__ == '__main__':
     elif args.env == 'simple_push':
         train_env = simple_push_v2.env()
         test_env = simple_push_v2.env(render_mode='human')
+    elif args.env == 'simple_spread':
+        train_env = simple_spread_v2.env()
+        test_env = simple_spread_v2.env(render_mode='human')
     else:
         raise NotImplementedError(args.env)
 
