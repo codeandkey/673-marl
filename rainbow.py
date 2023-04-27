@@ -8,24 +8,18 @@ from pfrl import nn as pnn
 from pfrl import agents, q_functions, replay_buffers, explorers, action_value
 
 
-class QNetwork(nn.Module):
-    def __init__(self, obs_size, n_actions):
-        super().__init__()
-        self.fc1 = nn.Linear(obs_size, 50)
-        self.fc2 = nn.Linear(50, 50)
-        self.fc3 = nn.Linear(50, n_actions)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return action_value.DiscreteActionValue(x)
-
-
 def rainbow_agent(env, agent, steps):
 
     obs_size = env.observation_space(agent).shape[0]
     n_actions = env.action_space(agent).n
+
+    q_func = q_functions.FCStateQFunctionWithDiscreteAction(
+        obs_size,
+        n_actions,
+        n_hidden_layers=2,
+        n_hidden_channels=50,
+    )
+    # q_func = QNetwork(obs_size, n_actions)
 
     # Hyperparameter; the continuous range of possible Q-values is discretized into a fixed number of "atoms"
     # n_atoms = 51 
@@ -34,7 +28,6 @@ def rainbow_agent(env, agent, steps):
     # v_min = -10
     # q_func = q_functions.DistributionalDuelingDQN(n_actions, n_atoms, v_min, v_max)
 
-    q_func = QNetwork(obs_size, n_actions)
 
     # Noisy nets; Sigma is the scaling factor of the initial weights of noise-scaling parameters
     pnn.to_factorized_noisy(q_func, sigma_scale=0.5)
