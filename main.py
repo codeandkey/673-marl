@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--algorithm',
                     type=str,
-                    default='dqn',
+                    default='trpo',
                     choices=['dqn', 'ddqn', 'a2c', 'ppo'],
                     help='The algorithm to use')
 
@@ -56,10 +56,11 @@ if __name__ == '__main__':
     # initialize training and eval environments
     if args.env == 'simple_adversary':
         train_env = simple_adversary_v2.env()
-        test_env = simple_adversary_v2.env(render_mode='human')
+        test_env = simple_adversary_v2.env()
+        # render_mode='human'
     elif args.env == 'simple_push':
         train_env = simple_push_v2.env()
-        test_env = simple_push_v2.env(render_mode='human')
+        test_env = simple_push_v2.env()
     else:
         raise NotImplementedError(args.env)
 
@@ -70,20 +71,28 @@ if __name__ == '__main__':
     # each environment makes use of two different agents,
     # so we initialize one for each.
     make_agent = None
+    print(f'Algorithm being used is {args.algorithm}')
 
     if args.algorithm == 'dqn':
-        from dqn import dqn_agent as make_agent
+        from dqn import dqn_agent 
     #elif args.algorithm == 'a3c':
     #    from a3c import a3c_agent as make_agent
     #elif args.algorithm == 'ppo':
     #   from ppo import ppo_agent as make_agent
+
+
+        agents = {
+            agent_name: dqn_agent(train_env, agent_name)
+            for agent_name in train_env.agents
+    }
+    elif args.algorithm == 'trpo':
+        from Trpo import trpo_agent
+        agents = {
+            agent_name: trpo_agent(train_env, agent_name)
+            for agent_name in train_env.agents
+            }
     else:
         raise NotImplementedError(args.algorithm)
-
-    agents = {
-        agent_name: make_agent(train_env, agent_name)
-        for agent_name in train_env.agents
-    }
 
     print('Starting MARL experiments')
 
