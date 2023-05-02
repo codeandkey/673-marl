@@ -34,7 +34,7 @@ parser.add_argument('--tau',
 
 parser.add_argument('--lr',
                     type=float,
-                    default=0.0001,
+                    default=0.00001,
                     help='Learning rate')
 
 parser.add_argument('--gamma',
@@ -58,32 +58,27 @@ parser.add_argument('--use-gae',
 
 parser.add_argument('--gpu',
                     type=int,
-                    default=0,
+                    default=-1,
                     help='GPU device ID. Set to -1 to use CPUs only.')
 
 parser.add_argument('--update-steps',
                     type=int,
-                    default=1,
+                    default=5,
                     help='Frequency of target network updates')
 
 parser.add_argument('--max-grad-norm',
                     type=float,
-                    default=10.0,
+                    default=40.0,
                     help='Maximum norm of gradients')
 
 parser.add_argument('--episodes',
                     type=int,
-                    default=10000,
+                    default=3000000,
                     help='The number of training episodes')
 
 parser.add_argument('--outpath',
                     default='results.json',
                     help='Output file path.')
-
-parser.add_argument('--steps',
-                    type=int,
-                    default=10**8,
-                    help='Total number of timesteps to train the agent.')
 
 parser.add_argument('--eval-interval',
                     type=int,
@@ -98,6 +93,11 @@ parser.add_argument('--load',
 parser.add_argument('--render-mode',
                     default=None,
                     help='Test environment render mode')
+
+parser.add_argument('--n-agents',
+                    default=1,
+                    type=int,
+                    help='Number of agents')
 
 args = parser.parse_args()
 
@@ -114,8 +114,8 @@ if __name__ == '__main__':
         train_env = simple_push_v2.env()
         test_env = simple_push_v2.env()
     elif args.env == 'simple_spread':
-        train_env = simple_spread_v2.env()
-        test_env = simple_spread_v2.env()
+        train_env = simple_spread_v2.env(N=args.n_agents, local_ratio=0, max_cycles=200)
+        test_env = simple_spread_v2.env(N=args.n_agents, local_ratio=0, max_cycles=200)
     else:
         raise NotImplementedError(args.env)
 
@@ -125,31 +125,28 @@ if __name__ == '__main__':
     # initialize an algorithm
     # each environment makes use of two different agents,
     # so we initialize one for each.
-    make_agent = None
 
     if args.algorithm == 'dqn':
         from dqn import dqn_agent
-        agents = {
-            agent_name: dqn_agent(train_env, agent_name)
-            for agent_name in train_env.agents
-            }
 
+        agents = {
+            agent_name: dqn_agent(train_env, agent_name, args)
+            for agent_name in train_env.agents
+        }
     elif args.algorithm == 'rainbow':
         from rainbow import rainbow_agent
+
         agents = {
-            agent_name: rainbow_agent(train_env, agent_name, args.steps)
+            agent_name: rainbow_agent(train_env, agent_name, args)
             for agent_name in train_env.agents
-            }
+        }
     elif args.algorithm == 'a2c':
         from a2c import a2c_agent
+
         agents = {
             agent_name: a2c_agent(train_env, agent_name, args)
             for agent_name in train_env.agents
-            }
-    #elif args.algorithm == 'a3c':
-    #    from a3c import a3c_agent as make_agent
-    #elif args.algorithm == 'ppo':
-    #   from ppo import ppo_agent as make_agent
+        }
     else:
         raise NotImplementedError(args.algorithm)
 

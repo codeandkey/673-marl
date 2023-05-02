@@ -6,7 +6,7 @@ from torch import optim
 # DQN agent, example at
 # https://github.com/pfnet/pfrl/blob/2ad3d51a7a971f3fe7f2711f024be11642990d61/examples/gym/train_dqn_gym.py#L175
 
-def dqn_agent(env, agent):
+def dqn_agent(env, agent, args):
     obs_space = env.observation_space(agent)
     action_space = env.action_space(agent)
 
@@ -31,9 +31,9 @@ def dqn_agent(env, agent):
         q_function,
         optimizer=optim.Adam(q_function.parameters(), eps=1e-2),
         replay_buffer=replay_buffers.ReplayBuffer(10 ** 6),
-        gamma=0.99,
+        gamma=args.gamma,
         explorer=explorer,
-        gpu=-1,
+        gpu=args.gpu,
         update_interval=1,
         target_update_interval=100,
     )
