@@ -8,7 +8,7 @@ from pfrl import nn as pnn
 from pfrl import agents, q_functions, replay_buffers, explorers, action_value
 
 
-def rainbow_agent(env, agent, steps):
+def rainbow_agent(env, agent, args):
 
     obs_size = env.observation_space(agent).shape[0]
     n_actions = env.action_space(agent).n
@@ -41,7 +41,7 @@ def rainbow_agent(env, agent, steps):
     # Prioritized Replay
     # Anneal beta from beta0 to 1 throughout training
     update_interval = 4
-    betasteps = steps / update_interval
+    betasteps = (10 ** 6) / update_interval # TODO : recording by episode now, not sure what would be a good replacement for the args.steps
 
     # Capacity in terms of number of transitions, Exponent of errors to compute probabilities to sample
     # Initial value of beta, Steps to anneal beta to 1 
