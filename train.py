@@ -9,13 +9,10 @@ def train_agents_with_evaluation(
     """Trains agents in a multi-agent environment, periodically evaluating the
        performance of each agent over a single episode."""
 
-    train_rewards = [] # might not need recording, can remove if expensive
-    test_rewards = []
+    print('Agent set: ', agents.keys())
+    train_reward_history = { a: [] for a in agents.keys() }
 
-    total_steps = 0 # the total number of training steps taken
-    iteration = 0   # the number of training iterations taken
-
-    def write_results():
+    """def write_results():
         test_reward_history = { a: [] for a in agents.keys() }
 
         for t in test_rewards:
@@ -27,9 +24,9 @@ def train_agents_with_evaluation(
         ]
 
         with open(args.outpath, 'w') as f:
-            f.write(str(test_reward_history))
+            f.write(str(test_reward_history))"""
 
-    print('Will train for {} episodes'.format(args.episodes))
+    print('Training for {} episodes'.format(args.episodes))
     print('Writing results to {}'.format(args.outpath))
 
     for episode in range(args.episodes):
@@ -37,8 +34,21 @@ def train_agents_with_evaluation(
 
         # eval interval is measured in training iterations, not steps
 
-        train_reward = train_agents(agents, train_env, args.steps)
-        train_rewards.append(train_reward)
+        train_rewards = train_agents(agents, train_env)
+
+        # record the training rewards for each agent
+        for k in train_rewards.keys():
+            train_reward_history[k].append(train_rewards[k])
+
+        mean_rewards = {
+            k: sum(train_reward_history[k]) / max(1, len(train_reward_history[k]))
+            for k in train_reward_history.keys()
+        }
+
+        print('Episode', episode, '/', args.episodes,
+              'train reward', str(list(map(int, train_rewards.values()))),
+              'mean reward', str(list(map(int, mean_rewards.values()))),
+        )
 
         # Train the agents
         #train_rewards.append(train_agents(agents, train_env, train_steps))
@@ -49,6 +59,7 @@ def train_agents_with_evaluation(
         #    train_reward
         #))
 
+        """
         if episode % args.eval_interval == 0:
             # Evaluate the performance of each agent
             test_reward = evaluate_agents(agents, test_env)
@@ -58,9 +69,12 @@ def train_agents_with_evaluation(
                 strftime('%Y-%m-%d %H:%M:%S', gmtime()),
                 episode,
                 test_reward,
-            ))
+            ))"""
 
-            write_results()
+        # we report training rewards directly instead of greedy evaluation,
+        # to test the agents are learning and show a stabilized training curve
+        with open(args.outpath, 'w') as f:
+            f.write(str(train_reward_history | {'episodes': list(range(episode))}))
 
 def evaluate_agents(pfrl_agents, test_env):
     """Evaluates the performance of each agent over a single episode."""
@@ -96,7 +110,7 @@ def evaluate_agents(pfrl_agents, test_env):
 
     return agent_rewards
 
-def train_agents(agents, train_env, steps):
+def train_agents(agents, train_env):
     """Trains the agents in a multi-agent environment for a given number of
        steps."""
 
@@ -104,23 +118,23 @@ def train_agents(agents, train_env, steps):
 
     train_env.reset()
 
-    for agent in train_env.agent_iter(max_iter=steps):
-        if train_env.terminations[agent] or train_env.truncations[agent]:
-            train_env.step(None)
-            continue 
+    for agent in train_env.agent_iter():
+        prev_state, reward, terminal, trunc, _ = train_env.last()
 
-        #print('Agent', agent)
-        # take environment observation
-        state, reward, terminal, trunc, _ = train_env.last()
-        agent_rewards[agent] += reward
-        action = agents[agent].act(state)
+        if terminal or trunc:
+            train_env.step(None)
+            continue
+
+        action = agents[agent].act(train_env.observe(agent))
         train_env.step(action)
 
-        #print('Observe', agent, train_env.observe(agent), reward, terminal, trunc)
+        state, reward, terminal, trunc, _ = train_env.last()
+        agent_rewards[agent] += reward
+
         agents[agent].observe(
             train_env.observe(agent),
             reward,
-            terminal,
+            terminal or trunc,
             terminal or trunc
         )
 
@@ -129,7 +143,6 @@ def train_agents(agents, train_env, steps):
                 state.shape, train_env.observation_space(agent).shape
             ))
 
-        if not train_env.agents:
-            break
+    #print('episode done')
 
     return agent_rewards
