@@ -47,7 +47,13 @@ with open(args.source, 'r') as f:
     fdata = eval(f.read())
 
 # read test episode series
-data_X = fdata['episodes']
+if 'episodes' in fdata:
+    data_X = fdata['episodes']
+else:
+    data_X = list(range(len(fdata[list(fdata.keys())[0]])))
+
+if args.xmax:
+    data_X = data_X[:args.xmax]
 
 data_Y_agent = {}
 mean_Y_agent = {}
@@ -61,6 +67,9 @@ for k in fdata.keys():
 
     if args.window % 2 == 0:
         print('WARNING: rolling average window should be odd')
+
+    if args.xmax:
+        data_Y = data_Y[:args.xmax]
 
     if not args.no_window:
         pfx_Y = [data_Y[0]] * (args.window // 2)
@@ -108,35 +117,39 @@ for k in data_Y_agent.keys():
     data_color = colors.pop(0)
 
     if args.no_window:
-        lines[k], = ax.plot(data_X,
-                data_Y, 
+        lines[k], = ax.plot(list(range(len(data_Y))),
+                data_Y,
                 data_color + '-',
                 alpha=0.7,
                 label=k)
     else:
-        lines[k], = ax.plot(data_X,
-                data_Y, 
+        lines[k], = ax.plot(np.array(list(range(len(data_Y)))),
+                data_Y,
                 data_color + '-',
                 alpha=0.25)
 
-        mean_lines[k], = ax.plot(data_X,
+        mean_lines[k], = ax.plot(np.array(list(range(len(mean_Y)))),
                 mean_Y,
                 data_color + '-', alpha=0.7,
                 label=k)
 
 ax.legend()
 
+min_y = 0
+
 while True:
     for k in data_Y_agent.keys():
         data_Y, mean_Y = data_Y_agent[k], mean_Y_agent[k]
         
-        lines[k].set_data(data_X, data_Y)
+        lines[k].set_data(np.array(list(range(len(data_Y)))), data_Y)
 
-        plt.ylim((min(data_Y), max(plt.ylim()[1], max(data_Y))))
-        plt.xlim((min(data_X), max(plt.xlim()[1], max(data_X))))
+        #min_y = min(min_y, min(data_Y))
+        #max_y = max(max_y, max(data_Y))
+        #plt.ylim((min(data_Y), max(plt.ylim()[1], max(data_Y))))
+        #plt.xlim((min(data_X), max(plt.xlim()[1], max(data_X))))
 
         if not args.no_window:
-            mean_lines[k].set_data(data_X, mean_Y)
+            mean_lines[k].set_data(np.array(list(range(len(mean_Y)))), mean_Y)
 
     if args.live:
         #plt.draw()
