@@ -118,25 +118,28 @@ def train_agents(agents, train_env):
 
     train_env.reset()
 
+    first_action = { agent: True for agent in agents.keys() }
+
     for agent in train_env.agent_iter():
-        prev_state, reward, terminal, trunc, _ = train_env.last()
-
-        if terminal or trunc:
-            train_env.step(None)
-            continue
-
-        action = agents[agent].act(train_env.observe(agent))
-        train_env.step(action)
-
         state, reward, terminal, trunc, _ = train_env.last()
         agent_rewards[agent] += reward
 
-        agents[agent].observe(
-            train_env.observe(agent),
-            reward,
-            terminal or trunc,
-            terminal or trunc
-        )
+        if not first_action[agent]:
+            agents[agent].observe(
+                state,
+                reward,
+                terminal or trunc,
+                terminal or trunc
+            )
+        else:
+            first_action[agent] = False
+
+        if terminal or trunc:
+            action = None
+        else:
+            action = agents[agent].act(train_env.observe(agent))
+
+        train_env.step(action)
 
         if state.shape != train_env.observation_space(agent).shape:
             raise ValueError('Observation shape {} does not match expected shape {}'.format(
