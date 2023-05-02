@@ -22,8 +22,6 @@ def a2c_agent(env, agent, args):
         nn.ReLU(),
         nn.Linear(50, 50),
         nn.ReLU(),
-        nn.Linear(50, 50),
-        nn.ReLU(),
         pfrl.nn.Branched(
             nn.Sequential(
                 nn.Linear(50, action_space.n),
