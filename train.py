@@ -137,7 +137,7 @@ def train_agents(agents, train_env):
         if terminal or trunc:
             action = None
         else:
-            action = agents[agent].act(train_env.observe(agent))
+            action = agents[agent].act(state)
 
         train_env.step(action)
 
