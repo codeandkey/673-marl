@@ -4,10 +4,7 @@ def train_agents_with_evaluation(
   agents,
   train_env,
   test_env,
-  steps,
-  train_steps,
-  eval_interval,
-  outpath,
+  args,
 ):
     """Trains agents in a multi-agent environment, periodically evaluating the
        performance of each agent over a single episode."""
@@ -26,39 +23,44 @@ def train_agents_with_evaluation(
                 test_reward_history[k].append(t[k])
 
         test_reward_history['episodes'] = [
-            i * train_steps for i in range(len(test_rewards))
+            i * args.eval_interval for i in range(len(test_rewards))
         ]
 
-        with open(outpath, 'w') as f:
+        with open(args.outpath, 'w') as f:
             f.write(str(test_reward_history))
 
-    print('Will train for {} steps'.format(steps))
-    print('Writing results to {}'.format(outpath))
+    print('Will train for {} episodes'.format(args.episodes))
+    print('Writing results to {}'.format(args.outpath))
 
-    while total_steps < steps:
-        iteration += 1
-        total_steps += train_steps 
+    for episode in range(args.episodes):
         #print('Main iter {} step {} / {}'.format(iteration, total_steps, steps))
 
         # eval interval is measured in training iterations, not steps
-        if iteration % eval_interval == 0:
-            # Evaluate the performance of each agent
-            test_rewards.append(evaluate_agents(agents, test_env))
 
-            print('Time {}, test reward {}'.format(
+        train_reward = train_agents(agents, train_env, args.steps)
+        train_rewards.append(train_reward)
+
+        # Train the agents
+        #train_rewards.append(train_agents(agents, train_env, train_steps))
+
+        #print('Time {}, episode {}, train reward {}'.format(
+        #    episode,
+        #    strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+        #    train_reward
+        #))
+
+        if episode % args.eval_interval == 0:
+            # Evaluate the performance of each agent
+            test_reward = evaluate_agents(agents, test_env)
+            test_rewards.append(test_reward)
+
+            print('Time {}, episode {}, test reward {}'.format(
                 strftime('%Y-%m-%d %H:%M:%S', gmtime()),
-                test_rewards[-1]
+                episode,
+                test_reward,
             ))
 
             write_results()
-
-        # Train the agents
-        train_rewards.append(train_agents(agents, train_env, train_steps))
-
-        #print('Time {}, train reward {}'.format(
-            #strftime('%Y-%m-%d %H:%M:%S', gmtime()),
-            #train_rewards[-1]
-        #))
 
 def evaluate_agents(pfrl_agents, test_env):
     """Evaluates the performance of each agent over a single episode."""
@@ -82,6 +84,7 @@ def evaluate_agents(pfrl_agents, test_env):
         agent_rewards[agent] += reward
         test_env.step(action)
 
+        #print('Observe', agent, test_env.observe(agent), reward, terminal, trunc)
         pfrl_agents[agent].observe(
             test_env.observe(agent),
             reward,
@@ -99,13 +102,12 @@ def train_agents(agents, train_env, steps):
 
     agent_rewards = {agent: 0 for agent in agents.keys()}
 
-    if not train_env.agents:
-        train_env.reset()
+    train_env.reset()
 
     for agent in train_env.agent_iter(max_iter=steps):
         if train_env.terminations[agent] or train_env.truncations[agent]:
             train_env.step(None)
-            continue
+            continue 
 
         #print('Agent', agent)
         # take environment observation
@@ -114,6 +116,7 @@ def train_agents(agents, train_env, steps):
         action = agents[agent].act(state)
         train_env.step(action)
 
+        #print('Observe', agent, train_env.observe(agent), reward, terminal, trunc)
         agents[agent].observe(
             train_env.observe(agent),
             reward,
@@ -126,7 +129,7 @@ def train_agents(agents, train_env, steps):
                 state.shape, train_env.observation_space(agent).shape
             ))
 
-    if not train_env.agents:
-        train_env.reset()
+        if not train_env.agents:
+            break
 
     return agent_rewards
